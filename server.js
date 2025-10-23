@@ -1,4 +1,4 @@
-const express = require('express');
+ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
@@ -13,52 +13,25 @@ connectDB();
 // Initialize express app
 const app = express();
 
-// ========== CORS Configuration ==========
-const corsOptions = {
-  origin: [
-    'http://localhost:3000',      // Local React dev
-    'http://localhost:5173',      // Vite dev port
-    'https://reavalue-frontend.vercel.app'  // Production frontend
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
-
-// ========== Middleware ==========
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (uploaded images)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ========== Health Check Route ==========
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'Backend is running!',
-    environment: process.env.NODE_ENV,
-    timestamp: new Date(),
-    database: 'connected'
-  });
-});
-
-// ========== Routes ==========
+// Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/listings', require('./routes/listings'));
 app.use('/api/transactions', require('./routes/transactions'));
 
-// ========== Root Route ==========
+// Root route
 app.get('/', (req, res) => {
   res.json({
-    message: 'Welcome to Reavalue API',
+    message: 'Welcome to Scravo API',
     version: '1.0.0',
-    environment: process.env.NODE_ENV,
-    frontend: process.env.FRONTEND_URL || 'https://reavalue-frontend.vercel.app',
     endpoints: {
-      health: '/api/health',
       auth: '/api/auth',
       listings: '/api/listings',
       transactions: '/api/transactions'
@@ -66,40 +39,27 @@ app.get('/', (req, res) => {
   });
 });
 
-// ========== 404 Handler ==========
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
-    message: 'Route not found',
-    path: req.originalUrl,
-    method: req.method
-  });
+  res.status(404).json({ message: 'Route not found' });
 });
 
-// ========== Global Error Handler ==========
+// Error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Something went wrong!';
-  
-  res.status(statusCode).json({ 
-    message,
-    status: 'error',
-    ...(process.env.NODE_ENV === 'development' && { error: err.stack })
+  console.error(err.stack);
+  res.status(500).json({ 
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-// ========== Start Server ==========
+// Start server
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode`);
-  console.log(`📡 Server URL: ${process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL : `http://localhost:${PORT}`}`);
-  console.log(`🌐 API Health: /api/health`);
-  console.log(`📚 CORS Enabled for:`);
-  corsOptions.origin.forEach(url => console.log(`   - ${url}`));
+  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode`);
+  console.log(`📡 Server URL: http://localhost:${PORT}`);
+  console.log(`📝 API Docs: http://localhost:${PORT}/`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });
-
-module.exports = app;
