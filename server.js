@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express'); // Changed from 'cors' to 'express'
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
@@ -7,14 +7,20 @@ const connectDB = require('./config/db');
 // Load environment variables
 dotenv.config();
 
-// Connect to database
-connectDB();
-
 // Initialize express app
 const app = express();
 
+// CORS configuration
+app.use(cors({
+  origin: ['https://your-vercel-domain.vercel.app', 'http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+// Connect to database
+connectDB();
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -51,6 +57,14 @@ app.use((err, req, res, next) => {
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
+});
+
+// Security middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
 });
 
 // Start server
