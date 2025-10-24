@@ -1,33 +1,43 @@
-const express = require('express'); // Changed from 'cors' to 'express'
 const dotenv = require('dotenv');
+dotenv.config();
+
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 
-// Load environment variables
-dotenv.config();
-
-// Initialize express app
 const app = express();
 
-// CORS configuration
-app.use(cors({
-  origin: ['https://your-vercel-domain.vercel.app', 'http://localhost:5173'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
+// --- REPLACE/INSERT CORS CONFIG HERE ---
+const whitelist = [
+  'http://localhost:5173',
+  'https://revalue-frontend.vercel.app' // add your actual Vercel domain
+];
 
-// Connect to database
-connectDB();
+const corsOptions = {
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow non-browser tools
+    if (whitelist.indexOf(origin) !== -1) return callback(null, true);
+    return callback(new Error('CORS policy: origin not allowed'));
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','Accept'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // respond to preflight for all routes
+// --- end CORS config ---
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (uploaded images)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Connect to DB
+connectDB();
 
-// Routes
+// Routes (mounted under /api)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/listings', require('./routes/listings'));
 app.use('/api/transactions', require('./routes/transactions'));
